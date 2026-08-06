@@ -56,6 +56,17 @@ class LiquidBouncePlanModulesTest {
     }
 
     @Test
+    void exploitCheckNeverDropsRegistrySync() {
+        // Dropping registry or tag sync leaves the client without biomes, and the next world join dies
+        // with "Missing element minecraft:plains" instead of loading.
+        assertTrue(AntiExploitModule.isRegistrySync(new net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket(
+                net.minecraft.core.registries.Registries.BIOME, List.of())));
+        assertTrue(AntiExploitModule.isRegistrySync(new net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket(java.util.Map.of())));
+        assertFalse(AntiExploitModule.isRegistrySync(
+                new net.minecraft.network.protocol.game.ServerboundSwingPacket(net.minecraft.world.InteractionHand.MAIN_HAND)));
+    }
+
+    @Test
     void autoBuffOnlyRequestsMissingEnabledEffects() {
         assertTrue(AutoBuffModule.shouldBuff(true, false));
         assertFalse(AutoBuffModule.shouldBuff(false, false));
