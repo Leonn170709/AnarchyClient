@@ -47,12 +47,28 @@ class HudEditorScreenTest {
     }
 
     @Test
-    void groupDragClampsWithoutSnapping() {
-        // A dragged group must keep its spacing, so positions near an edge stay put instead of snapping.
-        assertEquals(9, HudEditorScreen.clampToScreen(9, SIZE, SCREEN));
-        assertEquals(0, HudEditorScreen.clampToScreen(-50, SIZE, SCREEN));
-        assertEquals(SCREEN - SIZE, HudEditorScreen.clampToScreen(999, SIZE, SCREEN));
-        assertEquals(0, HudEditorScreen.clampToScreen(50, SCREEN + 20, SCREEN));
+    void groupKeepsItsSpacingAgainstEveryEdge() {
+        // Two elements 100px apart, dragged past each edge in turn. Whatever the shift, the gap holds.
+        int gap = 100;
+        for (int leading : new int[]{-80, 0, 9, 250, 999}) {
+            int trailing = leading + gap;
+            int shift = HudEditorScreen.groupShift(leading, trailing + SIZE, SCREEN);
+            int first = leading + shift;
+            int second = trailing + shift;
+            assertEquals(gap, second - first, "spacing must survive the clamp");
+            assertTrue(first >= 0 && second + SIZE <= SCREEN, "group must land fully on screen");
+        }
+    }
+
+    @Test
+    void groupShiftLeavesAFittingGroupAlone() {
+        assertEquals(0, HudEditorScreen.groupShift(9, 200, SCREEN));
+    }
+
+    @Test
+    void groupWiderThanScreenPinsItsLeadingEdge() {
+        // Nothing can bring both edges in, so the near edge wins and the rest overflows.
+        assertEquals(-20, HudEditorScreen.groupShift(20, SCREEN + 80, SCREEN));
     }
 
     @Test

@@ -28,8 +28,8 @@ import java.util.function.Consumer;
 
 public final class Blaze3DRenderer extends CheckedRenderer {
 
-    /** Widest outline the one-pixel SDF ring still represents faithfully. */
-    private static final float HAIRLINE = 1.25F;
+    /** The single outline width {@code sdf_outline.fsh} renders; must match its {@code WIDTH_PX}. */
+    private static final float HAIRLINE = 1F;
 
     private final Minecraft client;
     private final GuiGraphicsExtractor graphics;
@@ -308,9 +308,10 @@ public final class Blaze3DRenderer extends CheckedRenderer {
     protected void doOutlineRoundedRect(final float x, final float y, final float width, final float height,
                                         final float rtl, final float rbl, final float rbr, final float rtr,
                                         final float outlineWidth, final Color color) {
-        // A uniform-radius hairline is the shape the SDF pipeline draws exactly; the tessellated
-        // fallback covers mixed radii and thick borders, whose stair-stepping is far less visible.
-        if (rtl == rbl && rbl == rbr && rbr == rtr && rtl >= 1F && outlineWidth <= HAIRLINE) {
+        // sdf_outline draws a ring exactly HAIRLINE pixels wide and carries no width channel, so only
+        // that one width may take it; every other width keeps the tessellated path, whose
+        // stair-stepping is far less visible on a thick border anyway.
+        if (rtl == rbl && rbl == rbr && rbr == rtr && rtl >= 1F && outlineWidth == HAIRLINE) {
             float radius = Math.min(rtl, Math.min(width, height) / 2F);
             this.submitSdfGrid(x, y, width, height, radius, AnarchyClientRenderPipelines.SDF_OUTLINE, color);
             return;

@@ -2,7 +2,6 @@ package net.blockhost.anarchyclient.notification;
 
 import net.blockhost.anarchyclient.rivet.Blaze3DRenderer;
 import net.blockhost.anarchyclient.rivet.GlassPanelCommand;
-import net.blockhost.anarchyclient.rivet.SoftShadowCommand;
 import net.blockhost.anarchyclient.ui.GlassTheme;
 import net.lenni0451.commons.color.Color;
 import net.minecraft.client.Minecraft;
@@ -23,7 +22,7 @@ public final class ToggleNotifications {
     private static final int ROW_HEIGHT = 20;
     /** Text inset, and therefore the chip's horizontal padding. */
     private static final float TEXT_INSET = 12F;
-    private static final Color SHADOW = Color.fromRGBA(0, 0, 0, 110);
+    private static final Color OUTLINE = Color.fromRGBA(255, 255, 255, 70);
     private static final int ROW_GAP = 5;
     private static final int MARGIN = 6;
     private static final int MAX_TOASTS = 8;
@@ -138,11 +137,13 @@ public final class ToggleNotifications {
                 float x = right ? guiWidth - width - MARGIN + offset : MARGIN - offset;
                 float radius = Math.min(GlassTheme.cornerRadius(), ROW_HEIGHT / 2F);
 
-                // Exactly the HUD editor's hint chip: soft shadow, one frosted-glass panel, plain text.
-                // The panel refracts the blurred scene where one was captured and falls back to a solid
-                // pane in-game; the slide-out covers the exit, which is why only the text fades.
-                renderer.custom(new SoftShadowCommand(x, y, width, ROW_HEIGHT, radius, 10F, 3F, SHADOW));
+                // The HUD editor's hint chip, minus its drop shadow: in-game the panel has no blurred
+                // scene to sample and stays translucent, so a shadow underneath shows straight through
+                // it — brightest at the rim, darkest at the center. The rim carries the edge instead.
                 renderer.custom(new GlassPanelCommand(x, y, width, ROW_HEIGHT, radius, GlassTheme.glass()));
+                // One 1px ring on the panel's own bounds, at the width sdf_outline renders, so it frames
+                // the fill exactly instead of stacking a second ring inside it.
+                renderer.outlineRoundedRect(x, y, width, ROW_HEIGHT, radius, 1F, OUTLINE);
                 graphics.text(font, text, Math.round(x + TEXT_INSET), Math.round(y + (ROW_HEIGHT - 8F) / 2F),
                         fade(GlassTheme.TEXT, alpha).toARGB(), false);
             }

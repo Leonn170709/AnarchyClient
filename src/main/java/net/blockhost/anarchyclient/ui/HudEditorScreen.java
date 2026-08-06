@@ -226,23 +226,64 @@ public final class HudEditorScreen extends Screen {
         if (this.dragOffsets.isEmpty()) {
             return super.mouseDragged(event, dragX, dragY);
         }
-        boolean single = this.dragOffsets.size() == 1;
+        // Every dragged element follows the same cursor, so the proposed positions already hold the
+        // group's shape. Elements that stopped rendering mid-drag are skipped rather than written back
+        // at a zero size.
+        Map<HudLayout.Element, int[]> proposed = new LinkedHashMap<>();
         for (HudLayout.Element element : HudLayout.elements()) {
             int[] offset = this.dragOffsets.get(element.id());
-            if (offset == null) {
-                // The element stopped rendering mid-drag; keep its stored position instead of writing
-                // a zero-sized snap over it.
-                continue;
+            if (offset != null) {
+                proposed.put(element, new int[]{
+                        (int) Math.round(event.x()) - offset[0],
+                        (int) Math.round(event.y()) - offset[1]});
             }
-            int x = (int) Math.round(event.x()) - offset[0];
-            int y = (int) Math.round(event.y()) - offset[1];
-            // Snapping a group per element would tear it apart, so only a lone element snaps.
+        }
+        if (proposed.isEmpty()) {
+            return true;
+        }
+        if (proposed.size() == 1) {
+            Map.Entry<HudLayout.Element, int[]> only = proposed.entrySet().iterator().next();
+            HudLayout.Element element = only.getKey();
             HudLayout.move(element.id(),
-                    single ? snap(x, element.width(), this.width) : clampToScreen(x, element.width(), this.width),
-                    single ? snap(y, element.height(), this.height) : clampToScreen(y, element.height(), this.height));
+                    snap(only.getValue()[0], element.width(), this.width),
+                    snap(only.getValue()[1], element.height(), this.height));
+        } else {
+            // Clamping each element on its own would stall the ones that hit an edge first and stretch
+            // the group; one shared shift keeps every gap intact. Snapping is skipped for the same
+            // reason — it would pull single members onto guides the rest cannot follow.
+            int shiftX = groupShift(proposed, this.width, true);
+            int shiftY = groupShift(proposed, this.height, false);
+            for (Map.Entry<HudLayout.Element, int[]> entry : proposed.entrySet()) {
+                HudLayout.move(entry.getKey().id(), entry.getValue()[0] + shiftX, entry.getValue()[1] + shiftY);
+            }
         }
         this.dirty = true;
         return true;
+    }
+
+    /** The one translation along an axis that pulls a whole group back on screen, or 0 if it fits. */
+    private static int groupShift(final Map<HudLayout.Element, int[]> proposed, final int screen, final boolean horizontal) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (Map.Entry<HudLayout.Element, int[]> entry : proposed.entrySet()) {
+            int start = horizontal ? entry.getValue()[0] : entry.getValue()[1];
+            int size = horizontal ? entry.getKey().width() : entry.getKey().height();
+            min = Math.min(min, start);
+            max = Math.max(max, start + size);
+        }
+        return groupShift(min, max, screen);
+    }
+
+    /**
+     * Shift for a group spanning {@code [min, max)} on a {@code screen}-wide axis: enough to clear the
+     * near edge, or to pull the far edge in. A group wider than the screen can only satisfy one of the
+     * two, so it pins its leading edge.
+     */
+    static int groupShift(final int min, final int max, final int screen) {
+        if (min < 0 || max - min >= screen) {
+            return -min;
+        }
+        return max > screen ? screen - max : 0;
     }
 
     @Override
@@ -269,11 +310,6 @@ public final class HudEditorScreen extends Screen {
             return true;
         }
         return super.mouseReleased(event);
-    }
-
-    /** Keep an element fully on screen without pulling it to an edge or the center. */
-    static int clampToScreen(final int value, final int size, final int screen) {
-        return size >= screen ? 0 : Math.max(0, Math.min(value, screen - size));
     }
 
     @Override
