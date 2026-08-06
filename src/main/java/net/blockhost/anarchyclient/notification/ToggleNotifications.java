@@ -140,10 +140,11 @@ public final class ToggleNotifications {
                 // The HUD editor's hint chip, minus its drop shadow: in-game the panel has no blurred
                 // scene to sample and stays translucent, so a shadow underneath shows straight through
                 // it — brightest at the rim, darkest at the center. The rim carries the edge instead.
-                renderer.custom(new GlassPanelCommand(x, y, width, ROW_HEIGHT, radius, GlassTheme.glass()));
+                renderer.custom(new GlassPanelCommand(x, y, width, ROW_HEIGHT, radius,
+                        fade(GlassTheme.glass(), alpha)));
                 // One 1px ring on the panel's own bounds, at the width sdf_outline renders, so it frames
                 // the fill exactly instead of stacking a second ring inside it.
-                renderer.outlineRoundedRect(x, y, width, ROW_HEIGHT, radius, 1F, OUTLINE);
+                renderer.outlineRoundedRect(x, y, width, ROW_HEIGHT, radius, 1F, fade(OUTLINE, alpha));
                 graphics.text(font, text, Math.round(x + TEXT_INSET), Math.round(y + (ROW_HEIGHT - 8F) / 2F),
                         fade(GlassTheme.TEXT, alpha).toARGB(), false);
             }
