@@ -3,6 +3,8 @@ package net.blockhost.anarchyclient.ui;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HudEditorScreenTest {
 
@@ -42,5 +44,24 @@ class HudEditorScreenTest {
         // Dragged past the right edge: clamped to the edge, then snapped to the 6px inset (354).
         assertEquals(354, HudEditorScreen.snap(999, SIZE, SCREEN));
         assertEquals(6, HudEditorScreen.snap(-50, SIZE, SCREEN)); // clamps to 0, then snaps to left margin
+    }
+
+    @Test
+    void groupDragClampsWithoutSnapping() {
+        // A dragged group must keep its spacing, so positions near an edge stay put instead of snapping.
+        assertEquals(9, HudEditorScreen.clampToScreen(9, SIZE, SCREEN));
+        assertEquals(0, HudEditorScreen.clampToScreen(-50, SIZE, SCREEN));
+        assertEquals(SCREEN - SIZE, HudEditorScreen.clampToScreen(999, SIZE, SCREEN));
+        assertEquals(0, HudEditorScreen.clampToScreen(50, SCREEN + 20, SCREEN));
+    }
+
+    @Test
+    void selectionBoxTakesEveryTouchedElement() {
+        HudLayout.Element element = new HudLayout.Element("id", "Name", 100, 100, 40, 20);
+        assertTrue(element.intersects(0, 0, 400, 400), "fully enclosed");
+        assertTrue(element.intersects(130, 110, 300, 300), "overlapping corner counts");
+        assertTrue(element.intersects(140, 120, 300, 300), "touching the bottom-right edge counts");
+        assertFalse(element.intersects(141, 121, 300, 300), "just past the element misses");
+        assertFalse(element.intersects(0, 0, 99, 400), "left of the element misses");
     }
 }
